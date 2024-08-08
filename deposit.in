@@ -1,0 +1,41 @@
+#/opt/lammps-mpich-4.0.3/lmpdeepmd -in deposit.in
+
+#https://github.com/lammps/lammps/blob/develop/examples/deposit/in.deposit.molecule
+#LAMMPS input script to deposit SPC water molecules and keep them rigid
+
+units real
+atom_style full
+boundary p p p
+
+# Define the simulation box
+region mybox block 0 100 0 100 0 100
+create_box 2 mybox #2 types
+
+#mol file
+molecule water water.molecule
+
+# Define force fields (e.g., Lennard-Jones, Coulombic, etc.)
+pair_style lj/cut 10.0
+pair_coeff 1 1 0.1553 3.166  # O-O interaction
+pair_coeff 2 2 0.0 0.0       # H-H interaction
+pair_coeff 1 2 0.0 0.0       # O-H interaction
+
+mass   1 1.0
+mass   2 1.0
+
+# Exclude LJ and Coulombic interactions within the same molecule
+special_bonds lj 0.0 0.0 0.0
+special_bonds coul 0.0 0.0 0.0
+
+# Deposit molecules
+fix 1 all deposit 100 0 1 12345 region mybox mol water near 1
+run 100
+unfix 1
+write_data after_deposit.data
+
+# Use fix rigid/small to keep water molecules rigid and apply NVT thermostat
+fix 2 all rigid/small molecule langevin 300.0 300.0 100.0 12345
+dump 1 all custom 1000 00depositNVT_*.cfg id type mol x y z
+# Run the simulation
+run 10000
+undump 1

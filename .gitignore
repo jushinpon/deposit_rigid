@@ -1,0 +1,5 @@
+*.data
+*.cfg
+*.log
+test*
+nohup.out
